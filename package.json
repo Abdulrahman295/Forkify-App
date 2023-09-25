@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "app for managing recipes",
   "scripts": {
-    "start": "parcel starter/index.html",
-    "build": "parcel build starter/index.html"
+    "start": "parcel code/index.html",
+    "build": "parcel build code/index.html"
   },
   "author": "abdulrahman",
   "license": "ISC",
