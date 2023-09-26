@@ -604,20 +604,29 @@ const controlSearchResults = async function() {
         // load search results
         await _model.loadSearchResults(query);
         // render results
-        console.log(_model.state.searchResults);
-        (0, _view.viewer).renderSearchResult(_model.state.searchResults);
+        console.log(_model.state.search.Results);
+        (0, _view.viewer).renderSearchResult(_model.generatePageContent(_model.state.search.currentPage));
+        (0, _view.viewer).renderPageBtn(_model.state.search);
     } catch (error) {
         console.error(error.message);
         (0, _view.viewer).renderErrorMessage(error.message);
     }
 };
+const controlPageBtn = function(action) {
+    if (action === "next") _model.state.search.currentPage += 1;
+    if (action === "prev") _model.state.search.currentPage -= 1;
+    console.log(_model.state.search.currentPage);
+    (0, _view.viewer).renderSearchResult(_model.generatePageContent(_model.state.search.currentPage));
+    (0, _view.viewer).renderPageBtn(_model.state.search);
+};
 const init = function() {
     (0, _view.viewer).addHandlerRender(controlRecipes);
     (0, _view.viewer).addHandlerSearch(controlSearchResults);
+    (0, _view.viewer).addHandlerPageClick(controlPageBtn);
 };
 init();
 
-},{"core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","./model":"3TEvl","regenerator-runtime":"dXNgZ","./view":"8EKc9"}],"49tUX":[function(require,module,exports) {
+},{"core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","./model":"3TEvl","./view":"8EKc9","regenerator-runtime":"dXNgZ"}],"49tUX":[function(require,module,exports) {
 "use strict";
 // TODO: Remove this module from `core-js@4` since it's split to modules listed below
 require("52e9b3eefbbce1ed");
@@ -2452,12 +2461,16 @@ parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "state", ()=>state);
 parcelHelpers.export(exports, "loadRecipeData", ()=>loadRecipeData);
 parcelHelpers.export(exports, "loadSearchResults", ()=>loadSearchResults);
+parcelHelpers.export(exports, "generatePageContent", ()=>generatePageContent);
 var _regeneratorRuntime = require("regenerator-runtime");
 var _configJs = require("./config.js");
 var _helpersJs = require("./helpers.js");
 const state = {
     recipe: {},
-    searchResults: []
+    search: {
+        Results: [],
+        currentPage: 1
+    }
 };
 const loadRecipeData = async function(id) {
     try {
@@ -2492,7 +2505,7 @@ const loadSearchResults = async function(query) {
         const data = await response.json();
         if (!response.ok || data.results === 0) throw new Error("No recipes found for your query. Please try again!");
         console.log(data, response);
-        state.searchResults = data.data.recipes.map((recipe)=>{
+        state.search.Results = data.data.recipes.map((recipe)=>{
             return {
                 id: recipe.id,
                 title: recipe.title,
@@ -2504,14 +2517,21 @@ const loadSearchResults = async function(query) {
         throw error;
     }
 };
+const generatePageContent = function(page) {
+    const start = (page - 1) * (0, _configJs.RES_PER_PAGE);
+    const end = page * (0, _configJs.RES_PER_PAGE);
+    return state.search.Results.slice(start, end);
+};
 
 },{"regenerator-runtime":"dXNgZ","./config.js":"eFaSl","./helpers.js":"g7MJX","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"eFaSl":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "API_URL", ()=>API_URL);
 parcelHelpers.export(exports, "TIMEOUT_SEC", ()=>TIMEOUT_SEC);
+parcelHelpers.export(exports, "RES_PER_PAGE", ()=>RES_PER_PAGE);
 const API_URL = "https://forkify-api.herokuapp.com/api/v2/recipes";
 const TIMEOUT_SEC = 10;
+const RES_PER_PAGE = 8;
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"gkKU3":[function(require,module,exports) {
 exports.interopDefault = function(a) {
@@ -2562,10 +2582,12 @@ parcelHelpers.export(exports, "viewer", ()=>viewer);
 var _iconsSvg = require("url:../img/icons.svg");
 var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
 var _fractional = require("fractional");
+var _config = require("./config");
 class view {
     #recipeDetailsELem = document.querySelector(".recipe");
     #searchElem = document.querySelector(".search");
     #searchResultElem = document.querySelector(".results");
+    #pageElem = document.querySelector(".pagination");
     renderRecipe(data) {
         const markup = this.#generateRecipeMarkup(data);
         this.#recipeDetailsELem.innerHTML = "";
@@ -2575,6 +2597,11 @@ class view {
         const markup = this.#generateResultsMarkup(data);
         this.#searchResultElem.innerHTML = "";
         this.#searchResultElem.insertAdjacentHTML("afterbegin", markup);
+    }
+    renderPageBtn(data) {
+        const markup = this.#generatePageBtnMarkup(data);
+        this.#pageElem.innerHTML = "";
+        this.#pageElem.insertAdjacentHTML("afterbegin", markup);
     }
     renderErrorMessage(message) {
         const markup = `
@@ -2600,6 +2627,21 @@ class view {
         this.#searchElem.addEventListener("submit", function(e) {
             e.preventDefault();
             handler();
+        });
+    }
+    addHandlerPageClick(handler) {
+        this.#pageElem.addEventListener("click", function(e) {
+            const btn = e.target.closest(".btn--inline");
+            if (!btn) return;
+            console.log(btn);
+            if (btn.classList.contains("pagination__btn--prev")) {
+                console.log("prev");
+                handler("prev");
+            }
+            if (btn.classList.contains("pagination__btn--next")) {
+                console.log("next");
+                handler("next");
+            }
         });
     }
     getQuery() {
@@ -2716,10 +2758,49 @@ class view {
       `;
         }).join("");
     }
+    #generatePageBtnMarkup(data) {
+        const numPages = Math.ceil(data.Results.length / (0, _config.RES_PER_PAGE));
+        // first page of muli pages
+        if (data.currentPage === 1 && numPages > 1) return `
+      <button class="btn--inline pagination__btn--next">
+            <span>Page ${data.currentPage + 1}</span>
+            <svg class="search__icon">
+              <use href="${0, _iconsSvgDefault.default}#icon-arrow-right"></use>
+            </svg>
+      </button>`;
+        // last page of multi pages
+        if (data.currentPage === numPages && numPages > 1) return `
+      <button class="btn--inline pagination__btn--prev">
+            <svg class="search__icon">
+              <use href="${0, _iconsSvgDefault.default}#icon-arrow-left"></use>
+            </svg>
+            <span>Page ${data.currentPage - 1}</span>
+      </button>
+      `;
+        // in range of muli pages
+        if (data.currentPage < numPages) return `
+      <button class="btn--inline pagination__btn--prev">
+            <svg class="search__icon">
+              <use href="${0, _iconsSvgDefault.default}#icon-arrow-left"></use>
+            </svg>
+            <span>Page ${data.currentPage - 1}</span>
+      </button>
+      <button class="btn--inline pagination__btn--next">
+            <span>Page ${data.currentPage + 1}</span>
+            <svg class="search__icon">
+              <use href="${0, _iconsSvgDefault.default}#icon-arrow-right"></use>
+            </svg>
+      </button>`;
+        return ``;
+    }
+    #insertMarkup(markup, element) {
+        element.innerHTML = "";
+        element.insertAdjacentHTML("afterbegin", markup);
+    }
 }
 const viewer = new view();
 
-},{"url:../img/icons.svg":"c7gpy","fractional":"3SU56","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"c7gpy":[function(require,module,exports) {
+},{"url:../img/icons.svg":"c7gpy","fractional":"3SU56","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./config":"eFaSl"}],"c7gpy":[function(require,module,exports) {
 module.exports = require("66fd57d8899c00c1").getBundleURL("6FmoU") + "icons.f304fdc6.svg" + "?" + Date.now();
 
 },{"66fd57d8899c00c1":"lgJ39"}],"lgJ39":[function(require,module,exports) {

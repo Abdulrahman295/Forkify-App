@@ -36,17 +36,35 @@ const controlSearchResults = async function () {
     await model.loadSearchResults(query);
 
     // render results
-    console.log(model.state.searchResults);
-    viewer.renderSearchResult(model.state.searchResults);
+    console.log(model.state.search.Results);
+    viewer.renderSearchResult(
+      model.generatePageContent(model.state.search.currentPage)
+    );
+
+    viewer.renderPageBtn(model.state.search);
   } catch (error) {
     console.error(error.message);
     viewer.renderErrorMessage(error.message);
   }
 };
 
+const controlPageBtn = function (action) {
+  if (action === 'next') model.state.search.currentPage += 1;
+
+  if (action === 'prev') model.state.search.currentPage -= 1;
+
+  console.log(model.state.search.currentPage);
+  viewer.renderSearchResult(
+    model.generatePageContent(model.state.search.currentPage)
+  );
+
+  viewer.renderPageBtn(model.state.search);
+};
+
 const init = function () {
   viewer.addHandlerRender(controlRecipes);
   viewer.addHandlerSearch(controlSearchResults);
+  viewer.addHandlerPageClick(controlPageBtn);
 };
 
 init();

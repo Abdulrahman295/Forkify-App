@@ -1,9 +1,9 @@
 import { async } from 'regenerator-runtime';
-import { API_URL, TIMEOUT_SEC } from './config.js';
+import { API_URL, TIMEOUT_SEC, RES_PER_PAGE } from './config.js';
 import { timeout } from './helpers.js';
 export const state = {
   recipe: {},
-  searchResults: [],
+  search: { Results: [], currentPage: 1 },
 };
 
 export const loadRecipeData = async function (id) {
@@ -47,7 +47,7 @@ export const loadSearchResults = async function (query) {
       throw new Error('No recipes found for your query. Please try again!');
 
     console.log(data, response);
-    state.searchResults = data.data.recipes.map(recipe => {
+    state.search.Results = data.data.recipes.map(recipe => {
       return {
         id: recipe.id,
         title: recipe.title,
@@ -58,4 +58,11 @@ export const loadSearchResults = async function (query) {
   } catch (error) {
     throw error;
   }
+};
+
+export const generatePageContent = function (page) {
+  const start = (page - 1) * RES_PER_PAGE;
+  const end = page * RES_PER_PAGE;
+
+  return state.search.Results.slice(start, end);
 };

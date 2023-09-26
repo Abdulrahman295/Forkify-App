@@ -1,9 +1,11 @@
 import icons from 'url:../img/icons.svg';
 import { Fraction } from 'fractional';
+import { RES_PER_PAGE } from './config';
 class view {
   #recipeDetailsELem = document.querySelector('.recipe');
   #searchElem = document.querySelector('.search');
   #searchResultElem = document.querySelector('.results');
+  #pageElem = document.querySelector('.pagination');
 
   renderRecipe(data) {
     const markup = this.#generateRecipeMarkup(data);
@@ -15,6 +17,12 @@ class view {
     const markup = this.#generateResultsMarkup(data);
     this.#searchResultElem.innerHTML = '';
     this.#searchResultElem.insertAdjacentHTML('afterbegin', markup);
+  }
+
+  renderPageBtn(data) {
+    const markup = this.#generatePageBtnMarkup(data);
+    this.#pageElem.innerHTML = '';
+    this.#pageElem.insertAdjacentHTML('afterbegin', markup);
   }
 
   renderErrorMessage(message) {
@@ -43,6 +51,23 @@ class view {
     this.#searchElem.addEventListener('submit', function (e) {
       e.preventDefault();
       handler();
+    });
+  }
+
+  addHandlerPageClick(handler) {
+    this.#pageElem.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--inline');
+      if (!btn) return;
+      console.log(btn);
+      if (btn.classList.contains('pagination__btn--prev')) {
+        console.log('prev');
+        handler('prev');
+      }
+
+      if (btn.classList.contains('pagination__btn--next')) {
+        console.log('next');
+        handler('next');
+      }
     });
   }
 
@@ -171,6 +196,56 @@ class view {
       `;
       })
       .join('');
+  }
+
+  #generatePageBtnMarkup(data) {
+    const numPages = Math.ceil(data.Results.length / RES_PER_PAGE);
+
+    // first page of muli pages
+    if (data.currentPage === 1 && numPages > 1) {
+      return `
+      <button class="btn--inline pagination__btn--next">
+            <span>Page ${data.currentPage + 1}</span>
+            <svg class="search__icon">
+              <use href="${icons}#icon-arrow-right"></use>
+            </svg>
+      </button>`;
+    }
+
+    // last page of multi pages
+    if (data.currentPage === numPages && numPages > 1) {
+      return `
+      <button class="btn--inline pagination__btn--prev">
+            <svg class="search__icon">
+              <use href="${icons}#icon-arrow-left"></use>
+            </svg>
+            <span>Page ${data.currentPage - 1}</span>
+      </button>
+      `;
+    }
+
+    // in range of muli pages
+    if (data.currentPage < numPages) {
+      return `
+      <button class="btn--inline pagination__btn--prev">
+            <svg class="search__icon">
+              <use href="${icons}#icon-arrow-left"></use>
+            </svg>
+            <span>Page ${data.currentPage - 1}</span>
+      </button>
+      <button class="btn--inline pagination__btn--next">
+            <span>Page ${data.currentPage + 1}</span>
+            <svg class="search__icon">
+              <use href="${icons}#icon-arrow-right"></use>
+            </svg>
+      </button>`;
+    }
+
+    return ``;
+  }
+  #insertMarkup(markup, element) {
+    element.innerHTML = '';
+    element.insertAdjacentHTML('afterbegin', markup);
   }
 }
 
