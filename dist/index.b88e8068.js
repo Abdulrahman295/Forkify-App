@@ -619,10 +619,22 @@ const controlPageBtn = function(action) {
     (0, _view.viewer).renderSearchResult(_model.generatePageContent(_model.state.search.currentPage));
     (0, _view.viewer).renderPageBtn(_model.state.search);
 };
+const controlServings = function(newServings) {
+    _model.updateServings(newServings);
+    (0, _view.viewer).renderRecipe(_model.state.recipe);
+};
+const controlBookmarks = function() {
+    if (!_model.state.recipe.bookmarked) _model.addBookmark(_model.state.recipe);
+    else _model.deleteBookmark(_model.state.recipe);
+    (0, _view.viewer).renderRecipe(_model.state.recipe);
+    (0, _view.viewer).renderBookmarks(_model.state.bookmarks);
+};
 const init = function() {
     (0, _view.viewer).addHandlerRender(controlRecipes);
     (0, _view.viewer).addHandlerSearch(controlSearchResults);
     (0, _view.viewer).addHandlerPageClick(controlPageBtn);
+    (0, _view.viewer).addHandlerServings(controlServings);
+    (0, _view.viewer).addHandlerBookmark(controlBookmarks);
 };
 init();
 
@@ -2462,6 +2474,9 @@ parcelHelpers.export(exports, "state", ()=>state);
 parcelHelpers.export(exports, "loadRecipeData", ()=>loadRecipeData);
 parcelHelpers.export(exports, "loadSearchResults", ()=>loadSearchResults);
 parcelHelpers.export(exports, "generatePageContent", ()=>generatePageContent);
+parcelHelpers.export(exports, "updateServings", ()=>updateServings);
+parcelHelpers.export(exports, "addBookmark", ()=>addBookmark);
+parcelHelpers.export(exports, "deleteBookmark", ()=>deleteBookmark);
 var _regeneratorRuntime = require("regenerator-runtime");
 var _configJs = require("./config.js");
 var _helpersJs = require("./helpers.js");
@@ -2470,7 +2485,8 @@ const state = {
     search: {
         Results: [],
         currentPage: 1
-    }
+    },
+    bookmarks: []
 };
 const loadRecipeData = async function(id) {
     try {
@@ -2490,8 +2506,10 @@ const loadRecipeData = async function(id) {
             image: recipe.image_url,
             servings: recipe.servings,
             cookingTime: recipe.cooking_time,
-            ingredients: recipe.ingredients
+            ingredients: recipe.ingredients,
+            bookmarked: false
         };
+        if (state.bookmarks.some((recipe)=>recipe.id === id)) state.recipe.bookmarked = true;
     } catch (error) {
         throw error;
     }
@@ -2510,9 +2528,11 @@ const loadSearchResults = async function(query) {
                 id: recipe.id,
                 title: recipe.title,
                 publisher: recipe.publisher,
-                image: recipe.image_url
+                image: recipe.image_url,
+                bookmarked: false
             };
         });
+        state.search.currentPage = 1;
     } catch (error) {
         throw error;
     }
@@ -2521,6 +2541,25 @@ const generatePageContent = function(page) {
     const start = (page - 1) * (0, _configJs.RES_PER_PAGE);
     const end = page * (0, _configJs.RES_PER_PAGE);
     return state.search.Results.slice(start, end);
+};
+const updateServings = function(newServings) {
+    state.recipe.ingredients.forEach((ing)=>{
+        ing.quantity = ing.quantity * newServings / state.recipe.servings;
+    });
+    state.recipe.servings = newServings;
+};
+const addBookmark = function(recipe) {
+    if (recipe.id === state.recipe.id) {
+        state.recipe.bookmarked = true;
+        state.bookmarks.push(recipe);
+    }
+};
+const deleteBookmark = function(recipe) {
+    if (recipe.id === state.recipe.id) {
+        const index = state.bookmarks.findIndex((el)=>el.id === recipe.id);
+        state.bookmarks.splice(index, 1);
+        state.recipe.bookmarked = false;
+    }
 };
 
 },{"regenerator-runtime":"dXNgZ","./config.js":"eFaSl","./helpers.js":"g7MJX","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"eFaSl":[function(require,module,exports) {
@@ -2588,20 +2627,18 @@ class view {
     #searchElem = document.querySelector(".search");
     #searchResultElem = document.querySelector(".results");
     #pageElem = document.querySelector(".pagination");
+    #bookmarksElem = document.querySelector(".bookmarks__list");
     renderRecipe(data) {
         const markup = this.#generateRecipeMarkup(data);
-        this.#recipeDetailsELem.innerHTML = "";
-        this.#recipeDetailsELem.insertAdjacentHTML("afterbegin", markup);
+        this.#insertMarkup(markup, this.#recipeDetailsELem);
     }
     renderSearchResult(data) {
-        const markup = this.#generateResultsMarkup(data);
-        this.#searchResultElem.innerHTML = "";
-        this.#searchResultElem.insertAdjacentHTML("afterbegin", markup);
+        const markup = this.#generateListMarkup(data);
+        this.#insertMarkup(markup, this.#searchResultElem);
     }
     renderPageBtn(data) {
         const markup = this.#generatePageBtnMarkup(data);
-        this.#pageElem.innerHTML = "";
-        this.#pageElem.insertAdjacentHTML("afterbegin", markup);
+        this.#insertMarkup(markup, this.#pageElem);
     }
     renderErrorMessage(message) {
         const markup = `
@@ -2614,8 +2651,11 @@ class view {
             <p>${message}</p>
       </div>
     `;
-        this.#recipeDetailsELem.innerHTML = "";
-        this.#recipeDetailsELem.insertAdjacentHTML("afterbegin", markup);
+        this.#insertMarkup(markup, this.#recipeDetailsELem);
+    }
+    renderBookmarks(data) {
+        const markup = this.#generateListMarkup(data);
+        this.#insertMarkup(markup, this.#bookmarksElem);
     }
     addHandlerRender(handler) {
         [
@@ -2642,6 +2682,21 @@ class view {
                 console.log("next");
                 handler("next");
             }
+        });
+    }
+    addHandlerServings(handler) {
+        this.#recipeDetailsELem.addEventListener("click", function(e) {
+            const btn = e.target.closest(".btn--update-servings");
+            if (!btn) return;
+            const newServings = +btn.dataset.updateTo;
+            if (newServings > 0) handler(newServings);
+        });
+    }
+    addHandlerBookmark(handler) {
+        this.#recipeDetailsELem.addEventListener("click", function(e) {
+            const btn = e.target.closest(".btn--bookmark");
+            if (!btn) return;
+            handler();
         });
     }
     getQuery() {
@@ -2674,12 +2729,12 @@ class view {
             <span class="recipe__info-text">servings</span>
 
             <div class="recipe__info-buttons">
-              <button class="btn--tiny btn--increase-servings">
+              <button class="btn--tiny btn--update-servings" data-update-to="${data.servings - 1}">
                 <svg>
                   <use href="${0, _iconsSvgDefault.default}#icon-minus-circle"></use>
                 </svg>
               </button>
-              <button class="btn--tiny btn--increase-servings">
+              <button class="btn--tiny btn--update-servings" data-update-to="${data.servings + 1}">
                 <svg>
                   <use href="${0, _iconsSvgDefault.default}#icon-plus-circle"></use>
                 </svg>
@@ -2692,9 +2747,9 @@ class view {
               <use href="${0, _iconsSvgDefault.default}#icon-user"></use>
             </svg>
           </div>
-          <button class="btn--round">
+          <button class="btn--round btn--bookmark">
             <svg class="">
-              <use href="${0, _iconsSvgDefault.default}#icon-bookmark-fill"></use>
+              <use href="${0, _iconsSvgDefault.default}#icon-bookmark${data.bookmarked ? "-fill" : ""}"></use>
             </svg>
           </button>
         </div>
@@ -2736,7 +2791,7 @@ class view {
           </a>
         </div>`;
     }
-    #generateResultsMarkup(data) {
+    #generateListMarkup(data) {
         return data.map((recipe)=>{
             return `
         <li class="preview">
@@ -2800,7 +2855,7 @@ class view {
 }
 const viewer = new view();
 
-},{"url:../img/icons.svg":"c7gpy","fractional":"3SU56","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./config":"eFaSl"}],"c7gpy":[function(require,module,exports) {
+},{"url:../img/icons.svg":"c7gpy","fractional":"3SU56","./config":"eFaSl","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"c7gpy":[function(require,module,exports) {
 module.exports = require("66fd57d8899c00c1").getBundleURL("6FmoU") + "icons.f304fdc6.svg" + "?" + Date.now();
 
 },{"66fd57d8899c00c1":"lgJ39"}],"lgJ39":[function(require,module,exports) {

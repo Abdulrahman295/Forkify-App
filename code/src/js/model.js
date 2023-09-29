@@ -4,6 +4,7 @@ import { timeout } from './helpers.js';
 export const state = {
   recipe: {},
   search: { Results: [], currentPage: 1 },
+  bookmarks: [],
 };
 
 export const loadRecipeData = async function (id) {
@@ -28,7 +29,11 @@ export const loadRecipeData = async function (id) {
       servings: recipe.servings,
       cookingTime: recipe.cooking_time,
       ingredients: recipe.ingredients,
+      bookmarked: false,
     };
+
+    if (state.bookmarks.some(recipe => recipe.id === id))
+      state.recipe.bookmarked = true;
   } catch (error) {
     throw error;
   }
@@ -53,8 +58,10 @@ export const loadSearchResults = async function (query) {
         title: recipe.title,
         publisher: recipe.publisher,
         image: recipe.image_url,
+        bookmarked: false,
       };
     });
+    state.search.currentPage = 1;
   } catch (error) {
     throw error;
   }
@@ -65,4 +72,27 @@ export const generatePageContent = function (page) {
   const end = page * RES_PER_PAGE;
 
   return state.search.Results.slice(start, end);
+};
+
+export const updateServings = function (newServings) {
+  state.recipe.ingredients.forEach(ing => {
+    ing.quantity = (ing.quantity * newServings) / state.recipe.servings;
+  });
+
+  state.recipe.servings = newServings;
+};
+
+export const addBookmark = function (recipe) {
+  if (recipe.id === state.recipe.id) {
+    state.recipe.bookmarked = true;
+    state.bookmarks.push(recipe);
+  }
+};
+
+export const deleteBookmark = function (recipe) {
+  if (recipe.id === state.recipe.id) {
+    const index = state.bookmarks.findIndex(el => el.id === recipe.id);
+    state.bookmarks.splice(index, 1);
+    state.recipe.bookmarked = false;
+  }
 };

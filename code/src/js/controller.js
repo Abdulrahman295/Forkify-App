@@ -61,10 +61,27 @@ const controlPageBtn = function (action) {
   viewer.renderPageBtn(model.state.search);
 };
 
+const controlServings = function (newServings) {
+  model.updateServings(newServings);
+
+  viewer.renderRecipe(model.state.recipe);
+};
+
+const controlBookmarks = function () {
+  if (!model.state.recipe.bookmarked) model.addBookmark(model.state.recipe);
+  else model.deleteBookmark(model.state.recipe);
+
+  viewer.renderRecipe(model.state.recipe);
+
+  viewer.renderBookmarks(model.state.bookmarks);
+};
+
 const init = function () {
   viewer.addHandlerRender(controlRecipes);
   viewer.addHandlerSearch(controlSearchResults);
   viewer.addHandlerPageClick(controlPageBtn);
+  viewer.addHandlerServings(controlServings);
+  viewer.addHandlerBookmark(controlBookmarks);
 };
 
 init();

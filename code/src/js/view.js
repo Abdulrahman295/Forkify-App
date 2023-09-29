@@ -6,23 +6,21 @@ class view {
   #searchElem = document.querySelector('.search');
   #searchResultElem = document.querySelector('.results');
   #pageElem = document.querySelector('.pagination');
+  #bookmarksElem = document.querySelector('.bookmarks__list');
 
   renderRecipe(data) {
     const markup = this.#generateRecipeMarkup(data);
-    this.#recipeDetailsELem.innerHTML = '';
-    this.#recipeDetailsELem.insertAdjacentHTML('afterbegin', markup);
+    this.#insertMarkup(markup, this.#recipeDetailsELem);
   }
 
   renderSearchResult(data) {
-    const markup = this.#generateResultsMarkup(data);
-    this.#searchResultElem.innerHTML = '';
-    this.#searchResultElem.insertAdjacentHTML('afterbegin', markup);
+    const markup = this.#generateListMarkup(data);
+    this.#insertMarkup(markup, this.#searchResultElem);
   }
 
   renderPageBtn(data) {
     const markup = this.#generatePageBtnMarkup(data);
-    this.#pageElem.innerHTML = '';
-    this.#pageElem.insertAdjacentHTML('afterbegin', markup);
+    this.#insertMarkup(markup, this.#pageElem);
   }
 
   renderErrorMessage(message) {
@@ -36,9 +34,12 @@ class view {
             <p>${message}</p>
       </div>
     `;
+    this.#insertMarkup(markup, this.#recipeDetailsELem);
+  }
 
-    this.#recipeDetailsELem.innerHTML = '';
-    this.#recipeDetailsELem.insertAdjacentHTML('afterbegin', markup);
+  renderBookmarks(data) {
+    const markup = this.#generateListMarkup(data);
+    this.#insertMarkup(markup, this.#bookmarksElem);
   }
 
   addHandlerRender(handler) {
@@ -68,6 +69,23 @@ class view {
         console.log('next');
         handler('next');
       }
+    });
+  }
+
+  addHandlerServings(handler) {
+    this.#recipeDetailsELem.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--update-servings');
+      if (!btn) return;
+      const newServings = +btn.dataset.updateTo;
+      if (newServings > 0) handler(newServings);
+    });
+  }
+
+  addHandlerBookmark(handler) {
+    this.#recipeDetailsELem.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--bookmark');
+      if (!btn) return;
+      handler();
     });
   }
 
@@ -106,12 +124,16 @@ class view {
             <span class="recipe__info-text">servings</span>
 
             <div class="recipe__info-buttons">
-              <button class="btn--tiny btn--increase-servings">
+              <button class="btn--tiny btn--update-servings" data-update-to="${
+                data.servings - 1
+              }">
                 <svg>
                   <use href="${icons}#icon-minus-circle"></use>
                 </svg>
               </button>
-              <button class="btn--tiny btn--increase-servings">
+              <button class="btn--tiny btn--update-servings" data-update-to="${
+                data.servings + 1
+              }">
                 <svg>
                   <use href="${icons}#icon-plus-circle"></use>
                 </svg>
@@ -124,9 +146,11 @@ class view {
               <use href="${icons}#icon-user"></use>
             </svg>
           </div>
-          <button class="btn--round">
+          <button class="btn--round btn--bookmark">
             <svg class="">
-              <use href="${icons}#icon-bookmark-fill"></use>
+              <use href="${icons}#icon-bookmark${
+      data.bookmarked ? '-fill' : ''
+    }"></use>
             </svg>
           </button>
         </div>
@@ -173,7 +197,7 @@ class view {
         </div>`;
   }
 
-  #generateResultsMarkup(data) {
+  #generateListMarkup(data) {
     return data
       .map(recipe => {
         return `
@@ -243,6 +267,7 @@ class view {
 
     return ``;
   }
+
   #insertMarkup(markup, element) {
     element.innerHTML = '';
     element.insertAdjacentHTML('afterbegin', markup);
