@@ -5,6 +5,7 @@ import { viewer } from './view';
 import { async } from 'regenerator-runtime';
 
 // https://forkify-api.herokuapp.com/v2
+// dc1907fc-0d78-4e0e-908f-23c8b9ae8ff0
 
 ///////////////////////////////////////
 
@@ -67,7 +68,7 @@ const controlServings = function (newServings) {
   viewer.renderRecipe(model.state.recipe);
 };
 
-const controlBookmarks = function () {
+const controlBookmarkBtn = function () {
   if (!model.state.recipe.bookmarked) model.addBookmark(model.state.recipe);
   else model.deleteBookmark(model.state.recipe);
 
@@ -76,12 +77,31 @@ const controlBookmarks = function () {
   viewer.renderBookmarks(model.state.bookmarks);
 };
 
+const controlBookmarkList = function () {
+  viewer.renderBookmarks(model.state.bookmarks);
+};
+
+const controlUploadRecipe = async function (newRecipe) {
+  try {
+    await model.uploadRecipe(newRecipe);
+    viewer.renderRecipe(model.state.recipe);
+    viewer.renderBookmarks(model.state.bookmarks);
+    window.history.pushState(null, '', `#${model.state.recipe.id}`);
+  } catch (error) {
+    console.error(error.message);
+  }
+};
+
 const init = function () {
   viewer.addHandlerRender(controlRecipes);
   viewer.addHandlerSearch(controlSearchResults);
-  viewer.addHandlerPageClick(controlPageBtn);
+  viewer.addHandlerPage(controlPageBtn);
   viewer.addHandlerServings(controlServings);
-  viewer.addHandlerBookmark(controlBookmarks);
+  viewer.addHandlerBookmarkBtn(controlBookmarkBtn);
+  viewer.addHandlerBookmarkList(controlBookmarkList);
+  viewer.addHandlerShowWindow();
+  viewer.addHandlerHideWindow();
+  viewer.addHandlerUpload(controlUploadRecipe);
 };
 
 init();

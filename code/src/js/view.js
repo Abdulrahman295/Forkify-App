@@ -1,5 +1,4 @@
 import icons from 'url:../img/icons.svg';
-import { Fraction } from 'fractional';
 import { RES_PER_PAGE } from './config';
 class view {
   #recipeDetailsELem = document.querySelector('.recipe');
@@ -7,6 +6,11 @@ class view {
   #searchResultElem = document.querySelector('.results');
   #pageElem = document.querySelector('.pagination');
   #bookmarksElem = document.querySelector('.bookmarks__list');
+  #form = document.querySelector('.upload');
+  #window = document.querySelector('.add-recipe-window');
+  #overlay = document.querySelector('.overlay');
+  #btnAddRecipe = document.querySelector('.nav__btn--add-recipe');
+  #btnCloseWindow = document.querySelector('.btn--close-modal');
 
   renderRecipe(data) {
     const markup = this.#generateRecipeMarkup(data);
@@ -55,7 +59,7 @@ class view {
     });
   }
 
-  addHandlerPageClick(handler) {
+  addHandlerPage(handler) {
     this.#pageElem.addEventListener('click', function (e) {
       const btn = e.target.closest('.btn--inline');
       if (!btn) return;
@@ -81,11 +85,50 @@ class view {
     });
   }
 
-  addHandlerBookmark(handler) {
+  addHandlerBookmarkBtn(handler) {
     this.#recipeDetailsELem.addEventListener('click', function (e) {
       const btn = e.target.closest('.btn--bookmark');
       if (!btn) return;
       handler();
+    });
+  }
+
+  addHandlerBookmarkList(handler) {
+    window.addEventListener('load', handler);
+  }
+
+  addHandlerShowWindow() {
+    this.#btnAddRecipe.addEventListener(
+      'click',
+      function () {
+        this.#window.classList.toggle('hidden');
+        this.#overlay.classList.toggle('hidden');
+      }.bind(this)
+    );
+  }
+
+  addHandlerHideWindow() {
+    this.#btnCloseWindow.addEventListener(
+      'click',
+      function () {
+        this.#window.classList.toggle('hidden');
+        this.#overlay.classList.toggle('hidden');
+      }.bind(this)
+    );
+    this.#overlay.addEventListener(
+      'click',
+      function () {
+        this.#window.classList.toggle('hidden');
+        this.#overlay.classList.toggle('hidden');
+      }.bind(this)
+    );
+  }
+
+  addHandlerUpload(handler) {
+    this.#form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const data = Object.fromEntries([...new FormData(this)]);
+      handler(data);
     });
   }
 
@@ -141,7 +184,7 @@ class view {
             </div>
           </div>
 
-          <div class="recipe__user-generated">
+          <div class="recipe__user-generated ${data.key ? '' : 'hidden'}">
             <svg>
               <use href="${icons}#icon-user"></use>
             </svg>
@@ -164,7 +207,9 @@ class view {
               <svg class="recipe__icon">
                 <use href="${icons}#icon-check"></use>
               </svg>
-              <div class="recipe__quantity">${ing.quantity}</div>
+              <div class="recipe__quantity">${
+                ing.quantity ? ing.quantity : ''
+              }</div>
               <div class="recipe__description">
                 <span class="recipe__unit">${ing.unit}</span>
                 ${ing.description}
@@ -209,7 +254,9 @@ class view {
               <div class="preview__data">
                 <h4 class="preview__title">${recipe.title}</h4>
                 <p class="preview__publisher">${recipe.publisher}</p>
-                <div class="preview__user-generated">
+                <div class="preview__user-generated ${
+                  recipe.key ? '' : 'hidden'
+                }">
                   <svg>
                     <use href="${icons}#icon-user"></use>
                   </svg>
